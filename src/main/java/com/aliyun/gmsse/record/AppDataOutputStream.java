@@ -32,10 +32,15 @@ public class AppDataOutputStream extends OutputStream {
         }
 
         ProtocolVersion version = ProtocolVersion.NTLS_1_1;
-        byte[] content = new byte[len];
-        System.arraycopy(b, off, content, 0, len);
-        Record recored = new Record(ContentType.APPLICATION_DATA, version, content);
-        recordStream.write(recored, true);
+        int limit = 8192;
+        int packSize = len % limit == 0 ? len / limit : (len / limit + 1);
+        for (int i = 1; i <= packSize; i++) {
+            int packLength = (len - i * limit) >= 0 ? limit : (len - (i - 1) * limit);
+            byte[] buffer = new byte[packLength];
+            System.arraycopy(b, (i - 1) * limit, buffer, 0, packLength);
+            Record recored = new Record(Record.ContentType.APPLICATION_DATA, version, buffer);
+            recordStream.write(recored, true);
+        }
     }
 
     @Override
